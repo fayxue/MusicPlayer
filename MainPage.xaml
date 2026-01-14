@@ -1,0 +1,295 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:viewmodels="clr-namespace:MusicPlayer.ViewModels"
+             xmlns:models="clr-namespace:MusicPlayer.Models"
+             xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
+             x:Class="MusicPlayer.MainPage"
+             x:DataType="viewmodels:MainViewModel"
+             BackgroundColor="{StaticResource BackgroundColor}">
+
+    <!-- 主布局 -->
+    <Grid RowDefinitions="Auto,*,Auto,Auto,Auto" Padding="0">
+
+        <!-- 隐藏的MediaElement用于播放音频 -->
+        <toolkit:MediaElement x:Name="MediaPlayer"
+                              Grid.Row="0"
+                              ShouldShowPlaybackControls="False"
+                              HeightRequest="0"
+                              WidthRequest="0" />
+
+        <!-- 顶部标题栏 -->
+        <Grid Grid.Row="1"
+              Background="{StaticResource PrimaryGradient}"
+              Padding="20,15"
+              HeightRequest="70">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <Label Grid.Column="0"
+                   Text="🎵 炫彩音乐"
+                   FontSize="26"
+                   FontAttributes="Bold"
+                   TextColor="{StaticResource TextPrimaryColor}"
+                   VerticalOptions="Center"/>
+
+            <Button Grid.Column="1"
+                    Text="➕"
+                    FontSize="28"
+                    BackgroundColor="Transparent"
+                    TextColor="{StaticResource TextPrimaryColor}"
+                    Command="{Binding LoadMusicFilesCommand}"
+                    Padding="0"
+                    WidthRequest="60"
+                    HeightRequest="60"/>
+        </Grid>
+
+        <!-- 中间内容区域 -->
+        <Grid Grid.Row="2" RowDefinitions="Auto,*" Margin="0">
+
+            <!-- 当前播放信息 -->
+            <Frame Grid.Row="0"
+                   Margin="20,20,20,10"
+                   Padding="25"
+                   BackgroundColor="{StaticResource SurfaceColor}"
+                   CornerRadius="20"
+                   HasShadow="True">
+                <VerticalStackLayout Spacing="15">
+
+                    <!-- 专辑封面占位 -->
+                    <Frame WidthRequest="200"
+                           HeightRequest="200"
+                           CornerRadius="100"
+                           Padding="0"
+                           HasShadow="True"
+                           HorizontalOptions="Center"
+                           BackgroundColor="{StaticResource PrimaryColor}">
+                        <Label Text="🎵"
+                               FontSize="80"
+                               HorizontalOptions="Center"
+                               VerticalOptions="Center"
+                               TextColor="{StaticResource TextPrimaryColor}"/>
+                    </Frame>
+
+                    <!-- 歌曲信息 -->
+                    <Label Text="{Binding CurrentSong.Title, FallbackValue='暂无播放'}"
+                           FontSize="24"
+                           FontAttributes="Bold"
+                           TextColor="{StaticResource TextPrimaryColor}"
+                           HorizontalOptions="Center"
+                           HorizontalTextAlignment="Center"/>
+
+                    <Label Text="{Binding CurrentSong.Artist, FallbackValue='选择歌曲开始播放'}"
+                           FontSize="16"
+                           TextColor="{StaticResource TextSecondaryColor}"
+                           HorizontalOptions="Center"
+                           HorizontalTextAlignment="Center"/>
+
+                    <!-- 进度条 -->
+                    <Grid ColumnDefinitions="Auto,*,Auto" Margin="0,15,0,0">
+                        <Label Grid.Column="0"
+                               Text="{Binding CurrentTime}"
+                               FontSize="12"
+                               TextColor="{StaticResource TextSecondaryColor}"
+                               VerticalOptions="Center"/>
+
+                        <Slider Grid.Column="1"
+                                x:Name="ProgressSlider"
+                                Minimum="0"
+                                Maximum="{Binding Duration}"
+                                Value="{Binding CurrentPosition}"
+                                MinimumTrackColor="{StaticResource PrimaryColor}"
+                                MaximumTrackColor="{StaticResource TextSecondaryColor}"
+                                ThumbColor="{StaticResource SecondaryColor}"
+                                Margin="10,0"
+                                DragCompleted="OnProgressSliderDragCompleted"/>
+
+                        <Label Grid.Column="2"
+                               Text="{Binding TotalTime}"
+                               FontSize="12"
+                               TextColor="{StaticResource TextSecondaryColor}"
+                               VerticalOptions="Center"/>
+                    </Grid>
+
+                </VerticalStackLayout>
+            </Frame>
+
+            <!-- 歌词显示区域 -->
+            <Frame Grid.Row="1"
+                   Margin="20,0,20,10"
+                   Padding="20"
+                   BackgroundColor="{StaticResource SurfaceColor}"
+                   CornerRadius="20"
+                   HasShadow="True">
+                <CollectionView ItemsSource="{Binding LrcLines}"
+                                SelectionMode="None">
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate x:DataType="models:LrcLine">
+                            <Label Text="{Binding Text}"
+                                   FontSize="{Binding IsHighlighted, Converter={StaticResource BoolToFontSizeConverter}}"
+                                   TextColor="{Binding IsHighlighted, Converter={StaticResource BoolToColorConverter}}"
+                                   HorizontalOptions="Center"
+                                   HorizontalTextAlignment="Center"
+                                   Margin="0,8"
+                                   Padding="10,5">
+                                <Label.Triggers>
+                                    <DataTrigger TargetType="Label"
+                                                 Binding="{Binding IsHighlighted}"
+                                                 Value="True">
+                                        <Setter Property="FontAttributes" Value="Bold"/>
+                                        <Setter Property="FontSize" Value="18"/>
+                                        <Setter Property="TextColor" Value="{StaticResource SecondaryColor}"/>
+                                    </DataTrigger>
+                                    <DataTrigger TargetType="Label"
+                                                 Binding="{Binding IsHighlighted}"
+                                                 Value="False">
+                                        <Setter Property="FontSize" Value="14"/>
+                                        <Setter Property="TextColor" Value="{StaticResource TextSecondaryColor}"/>
+                                    </DataTrigger>
+                                </Label.Triggers>
+                            </Label>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                    <CollectionView.EmptyView>
+                        <Label Text="暂无歌词"
+                               FontSize="16"
+                               TextColor="{StaticResource TextSecondaryColor}"
+                               HorizontalOptions="Center"
+                               VerticalOptions="Center"
+                               Margin="0,50"/>
+                    </CollectionView.EmptyView>
+                </CollectionView>
+            </Frame>
+
+        </Grid>
+
+        <!-- 播放控制栏 -->
+        <Frame Grid.Row="3"
+               Margin="20,10"
+               Padding="20"
+               BackgroundColor="{StaticResource SurfaceColor}"
+               CornerRadius="20"
+               HasShadow="True">
+            <Grid ColumnDefinitions="*,*,*,*,*" ColumnSpacing="10">
+
+                <!-- 播放模式 -->
+                <Button Grid.Column="0"
+                        Text="{Binding PlayModeIcon}"
+                        FontSize="24"
+                        BackgroundColor="Transparent"
+                        TextColor="{StaticResource PrimaryColor}"
+                        Command="{Binding TogglePlayModeCommand}"
+                        ToolTipProperties.Text="{Binding PlayModeText}"/>
+
+                <!-- 上一曲 -->
+                <Button Grid.Column="1"
+                        Text="⏮️"
+                        FontSize="28"
+                        BackgroundColor="Transparent"
+                        TextColor="{StaticResource TextPrimaryColor}"
+                        Command="{Binding PreviousSongCommand}"/>
+
+                <!-- 播放/暂停 -->
+                <Button Grid.Column="2"
+                        FontSize="36"
+                        BackgroundColor="{StaticResource PrimaryColor}"
+                        TextColor="{StaticResource TextPrimaryColor}"
+                        Command="{Binding PlayPauseCommand}"
+                        CornerRadius="35"
+                        WidthRequest="70"
+                        HeightRequest="70"
+                        HorizontalOptions="Center">
+                    <Button.Triggers>
+                        <DataTrigger TargetType="Button"
+                                     Binding="{Binding IsPlaying}"
+                                     Value="True">
+                            <Setter Property="Text" Value="⏸️"/>
+                        </DataTrigger>
+                        <DataTrigger TargetType="Button"
+                                     Binding="{Binding IsPlaying}"
+                                     Value="False">
+                            <Setter Property="Text" Value="▶️"/>
+                        </DataTrigger>
+                    </Button.Triggers>
+                </Button>
+
+                <!-- 下一曲 -->
+                <Button Grid.Column="3"
+                        Text="⏭️"
+                        FontSize="28"
+                        BackgroundColor="Transparent"
+                        TextColor="{StaticResource TextPrimaryColor}"
+                        Command="{Binding NextSongCommand}"/>
+
+                <!-- 播放列表（占位） -->
+                <Button Grid.Column="4"
+                        Text="📜"
+                        FontSize="24"
+                        BackgroundColor="Transparent"
+                        TextColor="{StaticResource PrimaryColor}"
+                        Clicked="OnPlaylistClicked"/>
+
+            </Grid>
+        </Frame>
+
+        <!-- 播放列表 -->
+        <Frame Grid.Row="4"
+               x:Name="PlaylistFrame"
+               IsVisible="False"
+               Margin="20,0,20,20"
+               Padding="15"
+               BackgroundColor="{StaticResource SurfaceColor}"
+               CornerRadius="20"
+               HasShadow="True"
+               MaximumHeightRequest="300">
+            <Grid RowDefinitions="Auto,*">
+                <Label Grid.Row="0"
+                       Text="播放列表"
+                       FontSize="18"
+                       FontAttributes="Bold"
+                       TextColor="{StaticResource TextPrimaryColor}"
+                       Margin="0,0,0,10"/>
+
+                <CollectionView Grid.Row="1"
+                                ItemsSource="{Binding Playlist}"
+                                SelectionMode="Single"
+                                SelectedItem="{Binding CurrentSong}"
+                                SelectionChangedCommand="{Binding PlaySongCommand}"
+                                SelectionChangedCommandParameter="{Binding Source={RelativeSource Self}, Path=SelectedItem}">
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate x:DataType="models:Song">
+                            <Grid Padding="10,8"
+                                  ColumnDefinitions="*,Auto">
+                                <VerticalStackLayout Grid.Column="0" Spacing="4">
+                                    <Label Text="{Binding Title}"
+                                           FontSize="16"
+                                           TextColor="{StaticResource TextPrimaryColor}"/>
+                                    <Label Text="{Binding Artist}"
+                                           FontSize="12"
+                                           TextColor="{StaticResource TextSecondaryColor}"/>
+                                </VerticalStackLayout>
+                                <Label Grid.Column="1"
+                                       Text="{Binding FormattedDuration}"
+                                       FontSize="12"
+                                       TextColor="{StaticResource TextSecondaryColor}"
+                                       VerticalOptions="Center"/>
+                            </Grid>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                    <CollectionView.EmptyView>
+                        <Label Text="播放列表为空，点击右上角➕添加歌曲"
+                               FontSize="14"
+                               TextColor="{StaticResource TextSecondaryColor}"
+                               HorizontalOptions="Center"
+                               VerticalOptions="Center"
+                               Margin="20"/>
+                    </CollectionView.EmptyView>
+                </CollectionView>
+            </Grid>
+        </Frame>
+
+    </Grid>
+
+</ContentPage>
